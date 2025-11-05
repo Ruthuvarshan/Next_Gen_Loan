@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: loan_origination_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - MODEL_PATH=/app/models/xgboost_model.pkl
+      - SPACY_MODEL=en_core_web_sm
+      - LOG_LEVEL=INFO
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - loan_network
+
+  # Optional: PostgreSQL database for audit logging
+  postgres:
+    image: postgres:15-alpine
+    container_name: loan_db
+    environment:
+      POSTGRES_USER: loanuser
+      POSTGRES_PASSWORD: loanpass
+      POSTGRES_DB: loan_audit
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - loan_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  loan_network:
+    driver: bridge
