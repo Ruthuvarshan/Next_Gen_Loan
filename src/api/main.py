@@ -44,6 +44,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# PySpark imports (optional - fallback to pandas if not available)
+PYSPARK_AVAILABLE = False
+try:
+    from src.utils.spark_config import get_or_create_spark, stop_spark_session
+    from src.modules.spark_nlp_features import SparkNLPFeatureEngine, extract_nlp_features_from_text
+    from src.modules.spark_risk_model import SparkRiskScorer
+    PYSPARK_AVAILABLE = True
+    logger.info("PySpark modules loaded successfully")
+except ImportError as e:
+    logger.warning(f"PySpark not available, falling back to pandas: {e}")
+    PYSPARK_AVAILABLE = False
+
 # Initialize FastAPI app
 app = FastAPI(
     title=settings.app_name,
@@ -79,6 +91,11 @@ class ModelState:
     nlp_engine: Optional[NLPFeatureEngine] = None
     preprocessor: Optional[DataPreprocessor] = None
     prediction_cache: Dict = {}  # Cache recent predictions for explain endpoint
+    
+    # PySpark models (if available)
+    use_pyspark: bool = False
+    spark_risk_scorer: Optional[SparkRiskScorer] = None
+    spark_nlp_engine: Optional[SparkNLPFeatureEngine] = None
 
 state = ModelState()
 
@@ -96,27 +113,64 @@ async def startup_event():
         logger.info("Initializing IDP Engine...")
         state.idp_engine = IDPEngine()
         
-        # Initialize NLP Feature Engine
-        logger.info("Initializing NLP Feature Engine...")
-        state.nlp_engine = NLPFeatureEngine()
+        # Check if PySpark models are available
+        spark_model_path = Path("models/spark_xgboost_model")
         
-        # Initialize preprocessor
-        state.preprocessor = DataPreprocessor()
-        
-        # Load trained risk model
-        model_path = settings.get_model_path()
-        if model_path.exists():
-            logger.info(f"Loading risk model from {model_path}...")
-            state.risk_model = CreditRiskModel(model_path=model_path)
-            logger.info("Risk model loaded successfully")
+        if PYSPARK_AVAILABLE and spark_model_path.exists():
+            logger.info("PySpark models detected. Loading PySpark pipeline...")
+            state.use_pyspark = True
+            
+            # Initialize Spark session
+            spark = get_or_create_spark()
+            
+            # Initialize Spark NLP engine
+            logger.info("Initializing Spark NLP Feature Engine...")
+            state.spark_nlp_engine = SparkNLPFeatureEngine(spark)
+            
+            # Load Spark risk scorer
+            logger.info(f"Loading Spark XGBoost model from {spark_model_path}...")
+            # Load feature columns from metadata
+            metadata_path = Path("models/model_metadata.json")
+            if metadata_path.exists():
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+                    feature_cols = metadata.get('feature_columns', [])
+            else:
+                feature_cols = []  # Will be inferred
+            
+            state.spark_risk_scorer = SparkRiskScorer(
+                model_path=str(spark_model_path),
+                feature_cols=feature_cols
+            )
+            
+            logger.info("PySpark models loaded successfully")
+            
         else:
-            logger.warning(f"Risk model not found at {model_path}. Prediction endpoint will be unavailable.")
-        
-        # Initialize XAI explainer (will be fully initialized with background data on first use)
-        if state.risk_model and state.risk_model.model:
-            logger.info("Initializing XAI Explainer...")
-            state.xai_explainer = XAIExplainer(state.risk_model.model)
-            logger.info("XAI Explainer initialized")
+            # Fall back to pandas-based models
+            logger.info("Using pandas-based models...")
+            state.use_pyspark = False
+            
+            # Initialize NLP Feature Engine (pandas)
+            logger.info("Initializing NLP Feature Engine...")
+            state.nlp_engine = NLPFeatureEngine()
+            
+            # Initialize preprocessor
+            state.preprocessor = DataPreprocessor()
+            
+            # Load trained risk model
+            model_path = settings.get_model_path()
+            if model_path.exists():
+                logger.info(f"Loading risk model from {model_path}...")
+                state.risk_model = CreditRiskModel(model_path=model_path)
+                logger.info("Risk model loaded successfully")
+            else:
+                logger.warning(f"Risk model not found at {model_path}. Prediction endpoint will be unavailable.")
+            
+            # Initialize XAI explainer (will be fully initialized with background data on first use)
+            if state.risk_model and state.risk_model.model:
+                logger.info("Initializing XAI Explainer...")
+                state.xai_explainer = XAIExplainer(state.risk_model.model)
+                logger.info("XAI Explainer initialized")
         
         logger.info("Application startup complete")
         
