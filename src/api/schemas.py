@@ -41,18 +41,20 @@ class FeatureContribution(BaseModel):
 class PredictionResponse(BaseModel):
     """Response for loan prediction."""
     applicant_id: str
-    decision: str = Field(..., description="Approve or Deny")
+    decision: str = Field(..., description="Approved or Denied")
     probability: float = Field(..., ge=0, le=1, description="Probability of default")
     confidence: str = Field(..., description="High, Medium, or Low confidence")
+    adverse_action_reasons: Optional[List[str]] = Field(None, description="Denial reasons (for denied applications)")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     
     class Config:
         json_schema_extra = {
             "example": {
                 "applicant_id": "APP-2024-001",
-                "decision": "Approve",
+                "decision": "Approved",
                 "probability": 0.15,
                 "confidence": "High",
+                "adverse_action_reasons": None,
                 "timestamp": "2024-11-04T10:30:00Z"
             }
         }

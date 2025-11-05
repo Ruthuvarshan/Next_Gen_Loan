@@ -48,9 +48,13 @@ pytest==7.4.2
 pytest-cov==4.1.0
 httpx==0.24.1  # For FastAPI testing
 
-# Database (optional)
+# Database
 sqlalchemy==2.0.21
 psycopg2-binary==2.9.7
+
+# Authentication and Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
 
 # Configuration
 pyyaml==6.0.1

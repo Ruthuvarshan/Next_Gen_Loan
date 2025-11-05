@@ -3,9 +3,10 @@ FastAPI Main Application
 Production-ready loan origination microservice with IDP, NLP, XAI, and Fairness
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm
 import joblib
 from pathlib import Path
 from typing import Optional, Dict, List
@@ -14,6 +15,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import logging
+import json
 
 from src.api.schemas import (
     PredictionRequest,
@@ -30,6 +32,10 @@ from src.modules.risk_model import CreditRiskModel
 from src.modules.xai_explainer import XAIExplainer, get_simple_adverse_action_reasons
 from src.utils.config import settings
 from src.utils.preprocessing import DataPreprocessor
+from src.utils.database import init_databases, get_users_db, get_logging_db, User, PredictionLog
+from src.utils.auth import authenticate_user, create_access_token, get_current_user
+from src.api.admin import router as admin_router
+from sqlalchemy.orm import Session
 
 # Configure logging
 logging.basicConfig(
@@ -50,11 +56,19 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=[
+        "http://localhost:3000",  # User Portal
+        "http://localhost:3001",  # Admin Dashboard
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include admin router
+app.include_router(admin_router, prefix="/api")
 
 # Global state for models (loaded on startup)
 class ModelState:
@@ -75,6 +89,9 @@ async def startup_event():
     logger.info("Starting up application...")
     
     try:
+        # Initialize databases
+        init_databases()
+        
         # Initialize IDP Engine
         logger.info("Initializing IDP Engine...")
         state.idp_engine = IDPEngine()
@@ -134,44 +151,113 @@ async def health_check():
     )
 
 
-@app.post("/predict", response_model=PredictionResponse)
-async def predict(
-    request: PredictionRequest,
-    paystub: Optional[UploadFile] = File(None),
-    bank_statement: Optional[UploadFile] = File(None)
+@app.post("/api/token")
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_users_db)
 ):
     """
-    Complete prediction pipeline:
+    OAuth2 compatible token endpoint.
+    
+    Returns a JWT access token upon successful authentication.
+    
+    **Body:**
+    - username: User's username
+    - password: User's password
+    
+    **Returns:**
+    - access_token: JWT token
+    - token_type: "bearer"
+    - user_info: Basic user information (username, role, full_name)
+    """
+    user = authenticate_user(db, form_data.username, form_data.password)
+    
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Create JWT token
+    access_token = create_access_token(
+        data={"sub": user.username, "role": user.role}
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_info": {
+            "username": user.username,
+            "role": user.role,
+            "full_name": user.full_name,
+            "email": user.email
+        }
+    }
+
+
+@app.post("/predict", response_model=PredictionResponse)
+async def predict(
+    # Multipart form data fields
+    applicant_name: str = Form(...),
+    credit_score: int = Form(...),
+    age: int = Form(...),
+    loan_amount: float = Form(...),
+    loan_term: int = Form(...),
+    annual_income: Optional[float] = Form(None),
+    loan_purpose: Optional[str] = Form(None),
+    sex: Optional[str] = Form(None),
+    race: Optional[str] = Form(None),
+    age_group: Optional[str] = Form(None),
+    zip_code: Optional[str] = Form(None),
+    bank_statement_text: Optional[str] = Form(None),
+    
+    # File uploads
+    paystub: Optional[UploadFile] = File(None),
+    bank_statement: Optional[UploadFile] = File(None),
+    
+    # Authentication
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_logging_db)
+):
+    """
+    Complete prediction pipeline with multipart/form-data support:
     1. Process uploaded documents (IDP)
     2. Extract NLP features from bank statement
     3. Assemble feature matrix
     4. Generate prediction
-    5. Log for fairness monitoring
+    5. Log to database for fairness monitoring
+    
+    **Requires authentication** - Include JWT token in Authorization header.
     """
     try:
-        logger.info(f"Processing prediction request for applicant: {request.applicant_id}")
+        # Generate unique application ID
+        applicant_id = f"APP-{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+        
+        logger.info(f"Processing prediction request {applicant_id} for {applicant_name} by user {current_user.username}")
         
         # Check if model is loaded
         if state.risk_model is None or state.risk_model.model is None:
             raise HTTPException(status_code=503, detail="Risk model not loaded")
         
-        # Generate applicant ID if not provided
-        applicant_id = request.applicant_id or f"APP-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        
         # ============ Phase 1: Traditional Features ============
         traditional_features = {
-            'credit_score': request.application_data.credit_score,
-            'age': request.application_data.age,
-            'loan_amount': request.application_data.loan_amount,
-            'loan_term': request.application_data.loan_term,
-            'annual_income': request.application_data.annual_income or 0
+            'credit_score': credit_score,
+            'age': age,
+            'loan_amount': loan_amount,
+            'loan_term': loan_term,
+            'annual_income': annual_income or 0
         }
         
         # ============ Phase 2: IDP Processing ============
         idp_features = {}
+        extracted_entities = {}
+        documents_uploaded = []
         
         if paystub:
             logger.info("Processing paystub document...")
+            documents_uploaded.append(paystub.filename)
+            
             # Save uploaded file temporarily
             with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
                 content = await paystub.read()
@@ -186,16 +272,19 @@ async def predict(
             if 'gross_income' in idp_result:
                 idp_features['verified_gross_income'] = idp_result['gross_income']
             
+            extracted_entities.update(idp_result.get('entities', {}))
+            
             # Clean up temp file
             Path(tmp_path).unlink()
         
         # ============ Phase 3: NLP Feature Engineering ============
         nlp_features = {}
-        
-        bank_text = request.bank_statement_text
+        bank_text = bank_statement_text
         
         if bank_statement:
             logger.info("Processing bank statement document...")
+            documents_uploaded.append(bank_statement.filename)
+            
             # Save uploaded file temporarily
             with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
                 content = await bank_statement.read()
@@ -213,7 +302,7 @@ async def predict(
             logger.info("Extracting NLP features from bank statement...")
             nlp_features = state.nlp_engine.extract_features(
                 bank_text,
-                loan_purpose=request.application_data.loan_purpose
+                loan_purpose=loan_purpose
             )
             # Remove non-numeric features
             nlp_features = {k: v for k, v in nlp_features.items() if isinstance(v, (int, float))}
@@ -245,13 +334,75 @@ async def predict(
         
         # Determine decision based on threshold and probability
         if probability < settings.approval_threshold:
-            decision = "Approve"
+            decision = "approved"
             confidence = "High" if probability < 0.3 else "Medium"
         else:
-            decision = "Deny"
+            decision = "denied"
             confidence = "High" if probability > settings.high_risk_threshold else "Medium"
         
-        # ============ Phase 6: Cache for Explanation ============
+        # ============ Phase 6: Generate SHAP Explanation (for denied applications) ============
+        shap_values_json = None
+        adverse_action_reasons = None
+        
+        if decision == "denied":
+            try:
+                # Initialize explainer if needed
+                if state.xai_explainer.explainer is None:
+                    logger.info("Initializing SHAP explainer...")
+                    state.xai_explainer.initialize_explainer(feature_df)
+                
+                # Calculate SHAP values
+                shap_values = state.xai_explainer.calculate_shap_values(feature_df)
+                instance_shap = shap_values[0]
+                feature_names = feature_df.columns.tolist()
+                
+                # Generate adverse action reasons
+                adverse_action_reasons = get_simple_adverse_action_reasons(
+                    instance_shap,
+                    feature_names,
+                    top_n=settings.shap_top_n_reasons
+                )
+                
+                # Serialize SHAP values for database
+                shap_values_json = json.dumps({
+                    "feature_names": feature_names,
+                    "shap_values": instance_shap.tolist(),
+                    "base_value": float(state.xai_explainer.explainer.expected_value)
+                })
+                
+            except Exception as e:
+                logger.warning(f"Could not generate SHAP explanation: {str(e)}")
+        
+        # ============ Phase 7: Database Logging ============
+        log_entry = PredictionLog(
+            application_id=applicant_id,
+            timestamp=datetime.utcnow(),
+            submitted_by=current_user.username,
+            applicant_name=applicant_name,
+            applicant_age=age,
+            applicant_income=annual_income,
+            gender=sex,
+            race=race,
+            loan_amount=loan_amount,
+            loan_term=loan_term,
+            loan_purpose=loan_purpose,
+            prediction=decision,
+            probability=probability,
+            confidence=confidence,
+            nlp_features=json.dumps(nlp_features) if nlp_features else None,
+            extracted_entities=json.dumps(extracted_entities) if extracted_entities else None,
+            shap_values=shap_values_json,
+            adverse_action_reasons=json.dumps(adverse_action_reasons) if adverse_action_reasons else None,
+            documents_uploaded=",".join(documents_uploaded) if documents_uploaded else None
+        )
+        
+        db.add(log_entry)
+        db.commit()
+        db.refresh(log_entry)
+        
+        logger.info(f"Prediction logged to database: ID {log_entry.id}")
+        
+        # ============ Phase 8: Cache for Explanation Endpoint ============
         state.prediction_cache[applicant_id] = {
             'features': feature_df,
             'decision': decision,
@@ -259,23 +410,14 @@ async def predict(
             'timestamp': datetime.now()
         }
         
-        # ============ Phase 7: Fairness Logging ============
-        if settings.enable_fairness_logging:
-            sensitive_attrs = {
-                'sex': request.application_data.sex,
-                'age_group': request.application_data.age_group,
-                'zip_code': request.application_data.zip_code
-            }
-            # In production, this would log to database
-            logger.info(f"Fairness log: {applicant_id}, decision={decision}, sensitive_attrs={sensitive_attrs}")
-        
         logger.info(f"Prediction complete: {decision} (prob={probability:.4f})")
         
         return PredictionResponse(
             applicant_id=applicant_id,
-            decision=decision,
+            decision=decision.capitalize(),  # Return as "Approved" or "Denied"
             probability=probability,
-            confidence=confidence
+            confidence=confidence,
+            adverse_action_reasons=adverse_action_reasons if decision == "denied" else None
         )
         
     except Exception as e:
