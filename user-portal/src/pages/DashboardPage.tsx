@@ -56,7 +56,7 @@ const DashboardPage: React.FC = () => {
         <Typography variant="h4" gutterBottom fontWeight="bold">
           Dashboard
         </Typography>
-        <Typography variant="body1" color="textSecondary" paragraph>
+        <Typography variant="body1" color="text.secondary" paragraph>
           Next-Generation Loan Origination System
         </Typography>
 
@@ -69,7 +69,7 @@ const DashboardPage: React.FC = () => {
                 <Typography variant="h5" gutterBottom>
                   New Application
                 </Typography>
-                <Typography variant="body2" color="textSecondary">
+                <Typography variant="body2" color="text.secondary">
                   Start a new loan application with our intelligent document processing and AI-powered
                   risk assessment.
                 </Typography>
@@ -95,7 +95,7 @@ const DashboardPage: React.FC = () => {
                 <Typography variant="h5" gutterBottom>
                   Recent Applications
                 </Typography>
-                <Typography variant="body2" color="textSecondary">
+                <Typography variant="body2" color="text.secondary">
                   View and track your recent loan application submissions and their status.
                 </Typography>
               </CardContent>
@@ -118,7 +118,7 @@ const DashboardPage: React.FC = () => {
               <Typography variant="body2" fontWeight="bold" color="primary">
                 ✓ IDP Engine
               </Typography>
-              <Typography variant="caption" color="textSecondary">
+              <Typography variant="caption" color="text.secondary">
                 Intelligent Document Processing with OCR
               </Typography>
             </Grid>
@@ -126,7 +126,7 @@ const DashboardPage: React.FC = () => {
               <Typography variant="body2" fontWeight="bold" color="primary">
                 ✓ NLP Features
               </Typography>
-              <Typography variant="caption" color="textSecondary">
+              <Typography variant="caption" color="text.secondary">
                 Advanced bank statement analysis
               </Typography>
             </Grid>
@@ -134,7 +134,7 @@ const DashboardPage: React.FC = () => {
               <Typography variant="body2" fontWeight="bold" color="primary">
                 ✓ XGBoost Model
               </Typography>
-              <Typography variant="caption" color="textSecondary">
+              <Typography variant="caption" color="text.secondary">
                 State-of-the-art risk prediction
               </Typography>
             </Grid>
@@ -142,7 +142,7 @@ const DashboardPage: React.FC = () => {
               <Typography variant="body2" fontWeight="bold" color="primary">
                 ✓ SHAP Explanations
               </Typography>
-              <Typography variant="caption" color="textSecondary">
+              <Typography variant="caption" color="text.secondary">
                 ECOA-compliant adverse action reasons
               </Typography>
             </Grid>

@@ -73,6 +73,8 @@ app.add_middleware(
         "http://localhost:3001",  # Admin Dashboard
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
+        "http://localhost:5173",  # Vite dev server
+        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -389,10 +391,12 @@ async def predict(
         # Determine decision based on threshold and probability
         if probability < settings.approval_threshold:
             decision = "approved"
-            confidence = "High" if probability < 0.3 else "Medium"
+            confidence_label = "High" if probability < 0.3 else "Medium"
+            confidence_score = 0.9 if probability < 0.3 else 0.7
         else:
             decision = "denied"
-            confidence = "High" if probability > settings.high_risk_threshold else "Medium"
+            confidence_label = "High" if probability > settings.high_risk_threshold else "Medium"
+            confidence_score = 0.9 if probability > settings.high_risk_threshold else 0.7
         
         # ============ Phase 6: Generate SHAP Explanation (for denied applications) ============
         shap_values_json = None
@@ -442,7 +446,7 @@ async def predict(
             loan_purpose=loan_purpose,
             prediction=decision,
             probability=probability,
-            confidence=confidence,
+            confidence=confidence_score,
             nlp_features=json.dumps(nlp_features) if nlp_features else None,
             extracted_entities=json.dumps(extracted_entities) if extracted_entities else None,
             shap_values=shap_values_json,
@@ -470,7 +474,7 @@ async def predict(
             applicant_id=applicant_id,
             decision=decision.capitalize(),  # Return as "Approved" or "Denied"
             probability=probability,
-            confidence=confidence,
+            confidence=confidence_label,
             adverse_action_reasons=adverse_action_reasons if decision == "denied" else None
         )
         

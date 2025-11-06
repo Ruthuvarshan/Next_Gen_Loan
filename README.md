@@ -76,6 +76,55 @@ The system is architected as a sequential, multi-stage pipeline:
 | **Algorithmic Fairness** | Fairlearn, AIF360 |
 | **API & Deployment** | FastAPI, Docker, Uvicorn |
 
+## Technology Stack (PySpark-first)
+
+- Backend: FastAPI, Uvicorn, Pydantic, SQLAlchemy, SQLite
+- Auth/RBAC: python-jose (JWT), passlib[bcrypt]
+- Distributed Data & ML: PySpark, Spark ML (Pipelines, GBTClassifier), PyArrow, Spark NLP
+- ML/DS (fallback): numpy, pandas, scikit-learn, XGBoost, imbalanced-learn, joblib
+- IDP/NLP: OpenCV, pytesseract, pdfplumber, PyPDF2, Pillow, spaCy
+- XAI: SHAP
+- Fairness: Fairlearn, AIF360
+- Frontends: React + TypeScript (User: MUI @3000; Admin: AntD + Recharts @3001)
+- Ops/Tooling: python-dotenv, loguru, pytest, httpx, Docker, docker-compose
+
+## Quick Start (PySpark)
+
+```cmd
+cd R:\SSF\Next_Gen_Loan
+venv\Scripts\activate
+java -version  &&  python -m spacy validate
+
+python scripts\train_spark_model.py --data-path data\processed\training_data.csv --output-dir models
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+curl http://localhost:8000/health
+```
+```// filepath: r:\SSF\Next_Gen_Loan\README.md
+// ...existing code...
+## Technology Stack (PySpark-first)
+
+- Backend: FastAPI, Uvicorn, Pydantic, SQLAlchemy, SQLite
+- Auth/RBAC: python-jose (JWT), passlib[bcrypt]
+- Distributed Data & ML: PySpark, Spark ML (Pipelines, GBTClassifier), PyArrow, Spark NLP
+- ML/DS (fallback): numpy, pandas, scikit-learn, XGBoost, imbalanced-learn, joblib
+- IDP/NLP: OpenCV, pytesseract, pdfplumber, PyPDF2, Pillow, spaCy
+- XAI: SHAP
+- Fairness: Fairlearn, AIF360
+- Frontends: React + TypeScript (User: MUI @3000; Admin: AntD + Recharts @3001)
+- Ops/Tooling: python-dotenv, loguru, pytest, httpx, Docker, docker-compose
+
+## Quick Start (PySpark)
+
+```cmd
+cd R:\SSF\Next_Gen_Loan
+venv\Scripts\activate
+java -version  &&  python -m spacy validate
+
+python scripts\train_spark_model.py --data-path data\processed\training_data.csv --output-dir models
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+curl http://localhost:8000/health
+```
+
 ## Installation
 
 ### Prerequisites

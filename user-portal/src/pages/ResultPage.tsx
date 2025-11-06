@@ -18,33 +18,104 @@ import {
   ListItemText,
   Divider,
 } from '@mui/material';
-import { CheckCircle, Cancel, Home, Add } from '@mui/icons-material';
-import { PredictionResponse } from '../services/api';
+import { CheckCircle, Cancel, Home, Add, ExitToApp } from '@mui/icons-material';
+import { type PredictionResponse } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const ResultPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { id } = useParams();
+  const { id: _id } = useParams();
+  const { user, logout } = useAuth();
   
   const result: PredictionResponse | undefined = location.state?.result;
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   if (!result) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Alert severity="error">
-          No prediction result found. Please submit an application first.
-        </Alert>
-        <Button onClick={() => navigate('/')} sx={{ mt: 2 }}>
-          Return to Dashboard
-        </Button>
-      </Container>
+      <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
+        {/* Top Navigation Bar */}
+        <Box
+          sx={{
+            bgcolor: 'primary.main',
+            color: 'white',
+            p: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Typography variant="h5" fontWeight="bold">
+            Loan Officer Portal
+          </Typography>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Button
+              variant="outlined"
+              color="inherit"
+              onClick={() => navigate('/')}
+              startIcon={<Home />}
+            >
+              Dashboard
+            </Button>
+            <Typography variant="body1">Welcome, {user?.full_name}</Typography>
+            <Button variant="outlined" color="inherit" onClick={handleLogout} startIcon={<ExitToApp />}>
+              Logout
+            </Button>
+          </Box>
+        </Box>
+
+        <Container maxWidth="md" sx={{ mt: 4 }}>
+          <Alert severity="error">
+            No prediction result found. Please submit an application first.
+          </Alert>
+          <Button onClick={() => navigate('/')} sx={{ mt: 2 }}>
+            Return to Dashboard
+          </Button>
+        </Container>
+      </Box>
     );
   }
 
   const isApproved = result.decision.toLowerCase() === 'approved';
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
+      {/* Top Navigation Bar */}
+      <Box
+        sx={{
+          bgcolor: 'primary.main',
+          color: 'white',
+          p: 2,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <Typography variant="h5" fontWeight="bold">
+          Loan Officer Portal
+        </Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={() => navigate('/')}
+            startIcon={<Home />}
+          >
+            Dashboard
+          </Button>
+          <Typography variant="body1">Welcome, {user?.full_name}</Typography>
+          <Button variant="outlined" color="inherit" onClick={handleLogout} startIcon={<ExitToApp />}>
+            Logout
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Main Content */}
+      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Box textAlign="center" mb={4}>
           {isApproved ? (
@@ -57,7 +128,7 @@ const ResultPage: React.FC = () => {
             {isApproved ? 'Application Approved!' : 'Application Denied'}
           </Typography>
 
-          <Typography variant="body1" color="textSecondary" paragraph>
+          <Typography variant="body1" color="text.secondary" paragraph>
             Application ID: <strong>{result.applicant_id}</strong>
           </Typography>
         </Box>
@@ -71,14 +142,14 @@ const ResultPage: React.FC = () => {
 
           <Box display="flex" justifyContent="space-between" mt={2}>
             <Box>
-              <Typography variant="body2" color="textSecondary">
+              <Typography variant="body2" color="text.secondary">
                 Risk Probability
               </Typography>
               <Typography variant="h5">{(result.probability * 100).toFixed(2)}%</Typography>
             </Box>
 
             <Box>
-              <Typography variant="body2" color="textSecondary">
+              <Typography variant="body2" color="text.secondary">
                 Confidence
               </Typography>
               <Chip
@@ -113,7 +184,7 @@ const ResultPage: React.FC = () => {
               ))}
             </List>
 
-            <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
               These reasons are provided in compliance with the Equal Credit Opportunity Act (ECOA)
               to explain factors that negatively influenced the decision.
             </Typography>
@@ -140,6 +211,7 @@ const ResultPage: React.FC = () => {
         </Box>
       </Paper>
     </Container>
+    </Box>
   );
 };
 

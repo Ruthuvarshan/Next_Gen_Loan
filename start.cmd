@@ -25,7 +25,7 @@ start "FastAPI Backend" cmd /k "uvicorn src.api.main:app --reload --port 8000"
 
 timeout /t 3 /nobreak >nul
 
-echo [3/4] Starting User Portal on port 3000...
+echo [3/4] Starting User Portal on port 5173...
 echo.
 start "User Portal" cmd /k "cd user-portal && npm run dev"
 
@@ -42,7 +42,7 @@ echo Backend API (Swagger Docs):
 echo   http://localhost:8000/docs
 echo.
 echo User Portal (Loan Officers):
-echo   http://localhost:3000
+echo   http://localhost:5173
 echo   Username: loan_officer
 echo   Password: officer123
 echo.

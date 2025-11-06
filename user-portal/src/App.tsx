@@ -6,6 +6,9 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import NewApplicationPage from './pages/NewApplicationPage';
 import ResultPage from './pages/ResultPage';
+import ErrorBoundary from './components/ErrorBoundary';
+
+console.log('App.tsx loaded');
 
 // Create Material-UI theme
 const theme = createTheme({
@@ -21,6 +24,8 @@ const theme = createTheme({
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
   },
 });
+
+console.log('Theme created');
 
 // Protected Route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -42,35 +47,37 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/application/new"
-              element={
-                <ProtectedRoute>
-                  <NewApplicationPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/result/:id"
-              element={
-                <ProtectedRoute>
-                  <ResultPage />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
+        <ErrorBoundary>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/application/new"
+                element={
+                  <ProtectedRoute>
+                    <NewApplicationPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/result/:id"
+                element={
+                  <ProtectedRoute>
+                    <ResultPage />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </BrowserRouter>
+        </ErrorBoundary>
       </AuthProvider>
     </ThemeProvider>
   );

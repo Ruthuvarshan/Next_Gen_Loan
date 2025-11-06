@@ -22,13 +22,15 @@ import {
   Card,
   CardContent,
 } from '@mui/material';
-import { CloudUpload } from '@mui/icons-material';
-import { submitApplication, PredictionRequest } from '../services/api';
+import { CloudUpload, Home, ExitToApp } from '@mui/icons-material';
+import { submitApplication, type PredictionRequest } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const steps = ['Applicant Details', 'Loan Details', 'Document Upload', 'Review & Submit'];
 
 const NewApplicationPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -237,7 +239,7 @@ const NewApplicationPage: React.FC = () => {
                   <Typography variant="h6" gutterBottom>
                     Paystub Upload
                   </Typography>
-                  <Typography variant="body2" color="textSecondary" paragraph>
+                  <Typography variant="body2" color="text.secondary" paragraph>
                     Upload your most recent paystub (PDF format)
                   </Typography>
                   <Button
@@ -258,7 +260,7 @@ const NewApplicationPage: React.FC = () => {
                   <Typography variant="h6" gutterBottom>
                     Bank Statement Upload
                   </Typography>
-                  <Typography variant="body2" color="textSecondary" paragraph>
+                  <Typography variant="body2" color="text.secondary" paragraph>
                     Upload your last 3 months' bank statement (PDF format)
                   </Typography>
                   <Button
@@ -329,8 +331,45 @@ const NewApplicationPage: React.FC = () => {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
-    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.50' }}>
+      {/* Top Navigation Bar */}
+      <Box
+        sx={{
+          bgcolor: 'primary.main',
+          color: 'white',
+          p: 2,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <Typography variant="h5" fontWeight="bold">
+          Loan Officer Portal
+        </Typography>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={() => navigate('/')}
+            startIcon={<Home />}
+          >
+            Dashboard
+          </Button>
+          <Typography variant="body1">Welcome, {user?.full_name}</Typography>
+          <Button variant="outlined" color="inherit" onClick={handleLogout} startIcon={<ExitToApp />}>
+            Logout
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Main Content */}
+      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom align="center">
           New Loan Application
@@ -384,6 +423,7 @@ const NewApplicationPage: React.FC = () => {
         )}
       </Paper>
     </Container>
+    </Box>
   );
 };
 

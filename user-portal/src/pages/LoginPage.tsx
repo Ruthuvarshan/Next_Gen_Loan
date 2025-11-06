@@ -58,7 +58,7 @@ const LoginPage: React.FC = () => {
             <Typography variant="h4" gutterBottom fontWeight="bold">
               Loan Officer Portal
             </Typography>
-            <Typography variant="body2" color="textSecondary">
+            <Typography variant="body2" color="text.secondary">
               Next-Generation Loan Origination System
             </Typography>
           </Box>
