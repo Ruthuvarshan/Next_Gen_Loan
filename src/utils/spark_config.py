@@ -32,6 +32,16 @@ def create_spark_session(app_name: Optional[str] = None) -> SparkSession:
     if app_name is None:
         app_name = SPARK_APP_NAME
     
+    # Fix for Java compatibility - set Hadoop username
+    import os
+    import getpass
+    if 'HADOOP_USER_NAME' not in os.environ:
+        os.environ['HADOOP_USER_NAME'] = getpass.getuser()
+    
+    # Unset SPARK_HOME to use PySpark's bundled Spark (avoids version conflicts)
+    if 'SPARK_HOME' in os.environ:
+        del os.environ['SPARK_HOME']
+    
     # Create Spark configuration
     conf = SparkConf()
     conf.setAppName(app_name)
@@ -39,6 +49,23 @@ def create_spark_session(app_name: Optional[str] = None) -> SparkSession:
     conf.set("spark.executor.memory", SPARK_EXECUTOR_MEMORY)
     conf.set("spark.driver.memory", SPARK_DRIVER_MEMORY)
     conf.set("spark.sql.warehouse.dir", SPARK_WAREHOUSE_DIR)
+    
+    # Spark UI Configuration - Enable monitoring and detailed metrics
+    conf.set("spark.ui.enabled", "true")
+    conf.set("spark.ui.port", "4040")  # Default Spark UI port
+    conf.set("spark.ui.retainedJobs", "1000")
+    conf.set("spark.ui.retainedStages", "1000")
+    conf.set("spark.ui.retainedTasks", "10000")
+    conf.set("spark.sql.ui.retainedExecutions", "1000")
+    
+    # Event Log Configuration - Enable event logging for history server
+    conf.set("spark.eventLog.enabled", "true")
+    conf.set("spark.eventLog.dir", os.path.join(SPARK_WAREHOUSE_DIR, "spark-events"))
+    conf.set("spark.eventLog.compress", "true")
+    
+    # Create event log directory
+    event_log_dir = os.path.join(SPARK_WAREHOUSE_DIR, "spark-events")
+    os.makedirs(event_log_dir, exist_ok=True)
     
     # Arrow optimization for pandas conversion
     conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
@@ -54,8 +81,14 @@ def create_spark_session(app_name: Optional[str] = None) -> SparkSession:
     # Create or get existing session
     spark = SparkSession.builder.config(conf=conf).getOrCreate()
     
-    # Set log level to WARN to reduce verbosity
-    spark.sparkContext.setLogLevel("WARN")
+    # Set log level to INFO to see Spark UI URL
+    spark.sparkContext.setLogLevel("INFO")
+    
+    print("\n" + "="*80)
+    print(f"🚀 Spark Application Started: {app_name}")
+    print(f"📊 Spark UI available at: http://localhost:4040")
+    print(f"📁 Event logs directory: {event_log_dir}")
+    print("="*80 + "\n")
     
     return spark
 

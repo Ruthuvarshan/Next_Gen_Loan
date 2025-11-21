@@ -26,9 +26,7 @@ def parse_args():
     parser.add_argument('--data', type=str, required=True, help='Path to training data CSV')
     parser.add_argument('--output', type=str, default='models/', help='Output directory for models')
     parser.add_argument('--fairness', action='store_true', help='Enable fairness mitigation')
-    parser.add_argument('--constraint', type=str, default='equalized_odds',
-                       choices=['demographic_parity', 'equalized_odds'],
-                       help='Fairness constraint type')
+    parser.add_argument('--constraint', type=str, default='equalized_odds', choices=['demographic_parity', 'equalized_odds'], help='Fairness constraint type')
     parser.add_argument('--test-split', type=float, default=0.2, help='Test set proportion')
     parser.add_argument('--use-smote', action='store_true', default=True, help='Use SMOTE for imbalance')
     parser.add_argument('--hyperparameter-tuning', action='store_true', help='Enable hyperparameter tuning')
