@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import NewApplicationPage from './pages/NewApplicationPage';
 import ResultPage from './pages/ResultPage';
+import RecentApplicationsPage from './pages/RecentApplicationsPage';
 import ErrorBoundary from './components/ErrorBoundary';
 
 console.log('App.tsx loaded');
@@ -72,6 +73,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ResultPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/applications/recent"
+                element={
+                  <ProtectedRoute>
+                    <RecentApplicationsPage />
                   </ProtectedRoute>
                 }
               />

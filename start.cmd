@@ -5,10 +5,13 @@ echo Two-Window Architecture
 echo ====================================
 echo.
 
+REM Activate virtual environment
+call .venv\Scripts\activate.bat
+
 REM Check if databases exist
 if not exist "data\users.db" (
     echo [1/4] Seeding database with demo users...
-    python scripts\seed_users.py
+    .venv\Scripts\python.exe scripts\seed_users.py
     if errorlevel 1 (
         echo ERROR: Failed to seed database
         pause
@@ -21,13 +24,13 @@ if not exist "data\users.db" (
 echo.
 echo [2/4] Starting FastAPI Backend on port 8000...
 echo.
-start "FastAPI Backend" cmd /k "uvicorn src.api.main:app --reload --port 8000"
+start "FastAPI Backend" cmd /k "cd /d r:\SSF\Next_Gen_Loan && .venv\Scripts\activate.bat && uvicorn src.api.main:app --reload --port 8000"
 
 timeout /t 3 /nobreak >nul
 
 echo [3/4] Starting User Portal on port 5173...
 echo.
-start "User Portal" cmd /k "cd user-portal && npm run dev"
+start "User Portal" cmd /k "cd /d r:\SSF\Next_Gen_Loan\user-portal && npm run dev"
 
 timeout /t 2 /nobreak >nul
 

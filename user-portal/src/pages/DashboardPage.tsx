@@ -100,8 +100,13 @@ const DashboardPage: React.FC = () => {
                 </Typography>
               </CardContent>
               <CardActions>
-                <Button variant="outlined" size="large" fullWidth disabled>
-                  Coming Soon
+                <Button
+                  variant="outlined"
+                  size="large"
+                  fullWidth
+                  onClick={() => navigate('/applications/recent')}
+                >
+                  View Applications
                 </Button>
               </CardActions>
             </Card>

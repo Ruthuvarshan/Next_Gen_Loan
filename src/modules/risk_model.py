@@ -456,9 +456,40 @@ class CreditRiskModel:
         """Load a trained model from disk."""
         model_data = joblib.load(model_path)
         
-        self.model = model_data['model']
-        self.feature_names = model_data['feature_names']
-        self.smote = model_data.get('smote', None)
+        # Handle both old format (dict) and new format (sklearn Pipeline)
+        if isinstance(model_data, dict):
+            # Old format: dictionary with model, feature_names, smote
+            self.model = model_data['model']
+            self.feature_names = model_data['feature_names']
+            self.smote = model_data.get('smote', None)
+        else:
+            # New format: sklearn Pipeline from train_simple_model.py
+            self.model = model_data  # The pipeline itself
+            # Extract feature names from the pipeline's preprocessor
+            try:
+                preprocessor = model_data.named_steps['preprocessor']
+                # Get feature names from the transformers
+                feature_names = []
+                
+                for name, transformer, columns in preprocessor.transformers_:
+                    if name == 'num':
+                        # Numeric columns - use as is
+                        feature_names.extend(columns)
+                    elif name == 'cat':
+                        # Categorical columns - get one-hot encoded names
+                        if hasattr(transformer.named_steps['ohe'], 'get_feature_names_out'):
+                            cat_features = transformer.named_steps['ohe'].get_feature_names_out(columns)
+                            feature_names.extend(cat_features)
+                        else:
+                            # Fallback for older sklearn
+                            feature_names.extend(columns)
+                
+                self.feature_names = feature_names
+            except Exception as e:
+                print(f"Warning: Could not extract feature names from pipeline: {e}")
+                self.feature_names = None
+            
+            self.smote = None  # Pipeline doesn't use SMOTE separately
         
         print(f"Model loaded from {model_path}")
 

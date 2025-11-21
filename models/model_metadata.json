@@ -1,0 +1,58 @@
+{
+  "created_at": 1763706032,
+  "created_date": "2025-11-21 11:50:32",
+  "data_path": "R:\\SSF\\Next_Gen_Loan\\data\\sample\\loan_data_sample.csv",
+  "target_column": "loan_status",
+  "test_size": 0.2,
+  "random_seed": 42,
+  "metrics": {
+    "roc_auc": 0.6954925959983511,
+    "confusion_matrix": [
+      [
+        800,
+        542
+      ],
+      [
+        211,
+        447
+      ]
+    ]
+  },
+  "features": {
+    "numeric": [
+      "age",
+      "annual_income",
+      "employment_length",
+      "credit_score",
+      "debt_to_income_ratio",
+      "num_credit_lines",
+      "num_derogatory_marks",
+      "months_since_last_delinquency",
+      "loan_amount",
+      "loan_term",
+      "interest_rate",
+      "avg_monthly_balance",
+      "num_overdrafts",
+      "num_late_fees",
+      "monthly_income_deposits"
+    ],
+    "categorical": [
+      "application_id",
+      "applicant_name",
+      "sex",
+      "race",
+      "loan_purpose"
+    ],
+    "total": 20
+  },
+  "model_config": {
+    "n_estimators": 400,
+    "max_depth": 4,
+    "learning_rate": 0.05,
+    "scale_pos_weight": 2.038359285985568
+  },
+  "artifacts": {
+    "pipeline": "R:\\SSF\\Next_Gen_Loan\\models\\xgboost_model.pkl",
+    "xgb_json": "R:\\SSF\\Next_Gen_Loan\\models\\xgb_model.json"
+  }
+}

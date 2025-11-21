@@ -369,17 +369,57 @@ async def predict(
         # Convert to DataFrame
         feature_df = pd.DataFrame([all_features])
         
-        # Handle missing values
-        feature_df = state.preprocessor.handle_missing_values(feature_df)
-        
-        # Ensure all expected features are present (fill with 0 if missing)
-        if state.risk_model.feature_names:
-            for feature in state.risk_model.feature_names:
-                if feature not in feature_df.columns:
-                    feature_df[feature] = 0
+        # For sklearn pipeline models, we need to provide all expected columns
+        # The pipeline will handle preprocessing internally
+        if hasattr(state.risk_model.model, 'named_steps'):
+            # Pipeline model - fill in missing columns with defaults
+            expected_features = {
+                'application_id': applicant_id,
+                'applicant_name': applicant_name,
+                'age': age,
+                'annual_income': annual_income or 0,
+                'employment_length': 5.0,  # Default 5 years
+                'sex': sex or 'Unknown',
+                'race': race or 'Unknown',
+                'credit_score': credit_score,
+                'debt_to_income_ratio': 0.3,  # Will be calculated if income available
+                'num_credit_lines': 5,
+                'num_derogatory_marks': 0,
+                'months_since_last_delinquency': 24.0,
+                'loan_amount': loan_amount,
+                'loan_term': loan_term,
+                'loan_purpose': loan_purpose or 'other',
+                'interest_rate': 0.10,  # 10% default
+                'avg_monthly_balance': (annual_income or 0) / 12 if annual_income else 0,
+                'num_overdrafts': 0,
+                'num_late_fees': 0,
+                'monthly_income_deposits': (annual_income or 0) / 12 if annual_income else 0
+            }
             
-            # Reorder columns to match training
-            feature_df = feature_df[state.risk_model.feature_names]
+            # Override with NLP features if available
+            expected_features.update(nlp_features)
+            # Override with IDP features if available
+            expected_features.update(idp_features)
+            # Override with explicitly provided features
+            expected_features.update(traditional_features)
+            
+            # Calculate DTI if we have income
+            if annual_income and annual_income > 0:
+                expected_features['debt_to_income_ratio'] = (loan_amount / loan_term) / (annual_income / 12)
+            
+            feature_df = pd.DataFrame([expected_features])
+        else:
+            # Old model format - use existing logic
+            feature_df = state.preprocessor.handle_missing_values(feature_df)
+            
+            # Ensure all expected features are present (fill with 0 if missing)
+            if state.risk_model.feature_names:
+                for feature in state.risk_model.feature_names:
+                    if feature not in feature_df.columns:
+                        feature_df[feature] = 0
+                
+                # Reorder columns to match training
+                feature_df = feature_df[state.risk_model.feature_names]
         
         # ============ Phase 5: Prediction ============
         logger.info("Generating prediction...")
