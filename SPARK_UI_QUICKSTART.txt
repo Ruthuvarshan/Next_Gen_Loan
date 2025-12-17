@@ -1,3 +1,10 @@
+first : taskkill /FI "WindowTitle eq FastAPI Backend*" /T /F 2>nul && taskkill /FI "WindowTitle eq User Portal*" /T /F 2>nul && timeout /t 2 /nobreak >nul && start.cmd
+web portal : http://localhost:3000/login
+
+second : run_spark_ui_demo.cmd
+
+spark ui : http://localhost:4040/
+
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                                                                              ║
 ║                   🚀 SPARK UI - QUICK START GUIDE                            ║

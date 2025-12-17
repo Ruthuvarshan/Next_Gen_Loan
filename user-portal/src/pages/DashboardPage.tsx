@@ -15,7 +15,7 @@ import {
   CardContent,
   CardActions,
 } from '@mui/material';
-import { Add, Assessment, ExitToApp } from '@mui/icons-material';
+import { Add, Assessment, ExitToApp, Timeline } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 
 const DashboardPage: React.FC = () => {
@@ -107,6 +107,32 @@ const DashboardPage: React.FC = () => {
                   onClick={() => navigate('/applications/recent')}
                 >
                   View Applications
+                </Button>
+              </CardActions>
+            </Card>
+          </Grid>
+
+          {/* Spark UI Card */}
+          <Grid item xs={12} md={6}>
+            <Card elevation={3}>
+              <CardContent>
+                <Timeline sx={{ fontSize: 50, color: 'warning.main', mb: 2 }} />
+                <Typography variant="h5" gutterBottom>
+                  Spark Monitoring
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Monitor distributed ML training jobs, stages, and resource usage in real-time.
+                </Typography>
+              </CardContent>
+              <CardActions>
+                <Button
+                  variant="outlined"
+                  size="large"
+                  fullWidth
+                  color="warning"
+                  onClick={() => navigate('/spark/monitor')}
+                >
+                  Monitor Spark
                 </Button>
               </CardActions>
             </Card>

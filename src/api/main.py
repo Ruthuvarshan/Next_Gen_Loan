@@ -35,6 +35,7 @@ from src.utils.preprocessing import DataPreprocessor
 from src.utils.database import init_databases, get_users_db, get_logging_db, User, PredictionLog
 from src.utils.auth import authenticate_user, create_access_token, get_current_user
 from src.api.admin import router as admin_router
+from src.api.spark_control import router as spark_router
 from sqlalchemy.orm import Session
 
 # Configure logging
@@ -83,6 +84,9 @@ app.add_middleware(
 
 # Include admin router
 app.include_router(admin_router, prefix="/api")
+
+# Include spark control router
+app.include_router(spark_router, prefix="/api")
 
 # Global state for models (loaded on startup)
 class ModelState:
